@@ -289,52 +289,73 @@ public class Explorer {
         }
     }
     
+    private void changeToZero(){
+        for(int i = 0; i < maze.length; i++){
+            maze[i] = maze[i] >= 0?0:-2;
+        }
+    }
+    
     private void findPath(String currPath, int tX, int tY, int prevIndex){
-        int [] surroundIndexes = new int [4];
-        int [] surroundValues;
-        String newPath;
-        int newX, newY;
         if (getIndex(tX, tY) == endIndex){
-            for(int i=0; i < path.length; i++){
-                if (path[i].equals("")){
+            for(int i = 0; i < path.length; i++){
+                if(path[i] != null){
                     path[i] = currPath;
-                    System.out.println(path[i]);
                     break;
                 }
-            } 
-        }
-        surroundIndexes[0] = getIndex(tX, tY + 1);
-        surroundIndexes[1] = getIndex(tX + 1, tY);
-        surroundIndexes[2] = getIndex(tX, tY - 1);
-        surroundIndexes[3] = getIndex(tX - 1, tY);
-        
-        surroundValues = getMazeVal(surroundIndexes);
-        
-        for (int i = 0; i < surroundIndexes.length ; i++) {
-            if (surroundValues[i] >= 0 &&
-                    surroundIndexes[i] != prevIndex){
-                newX = tX;
-                newY = tY;
-                switch(i){
-                    case 0: newY++; break;
-                    case 1: newX++; break;
-                    case 2: newY--; break;
-                    case 3: newX--; break;
-                    default: break;
-                }
-                newPath = currPath;
-                newPath += returnDirection(i);
-                findPath(newPath, newX, newY, getIndex(tX, tY));
             }
         }
-        
+
+        else{
+            boolean loopDedect = false;
+            int [] surroundIndexes = new int [4];
+            int [] surroundValues;
+            int currVal = maze[getIndex(tX, tY)];
+            int newX = tX;
+            int newY = tY;
+            surroundIndexes[0] = getIndex(tX, tY + 1);
+            surroundIndexes[1] = getIndex(tX + 1, tY);
+            surroundIndexes[2] = getIndex(tX, tY - 1);
+            surroundIndexes[3] = getIndex(tX - 1, tY);
+            
+            surroundValues = getMazeVal(surroundIndexes);
+            
+            for(int i = 0; i < surroundIndexes.length; i++){
+                if(surroundIndexes[i] != prevIndex && surroundValues[i] >= 0){
+                    if((surroundValues[i] == 0) || (currVal + 1 <= surroundValues[i])){
+                        maze[surroundIndexes[i]] = currVal + 1;
+                        newX = tX;
+                        newY = tY;
+                        switch(i){
+                            case 0: newY++; break;
+                            case 1: newX++; break;
+                            case 2: newY--; break;
+                            case 3: newX--; break;
+                            default: break;
+                        }
+                        System.out.println("\n");
+                        printMaze();
+                        findPath(currPath + returnDirection(i), newX, newY, getIndex(tX, tY));
+                    }
+                    else if(currVal >= surroundValues[i]){
+                        loopDedect = true;
+                        break;
+                    } 
+                }
+
+            }
+            
+        }
     }
     
     // Ana metod
     
     public void start(){
         explore();
+        changeToZero();
         findPath("", startX, startY, -1);
+        for(String val: path){
+            System.out.println(val);
+        }
     }
     
     
