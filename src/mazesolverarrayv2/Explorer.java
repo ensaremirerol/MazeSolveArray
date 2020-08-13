@@ -23,6 +23,8 @@ import java.util.Scanner;
  * Robotun düzgün hareket etmesi için aklımda bir fikir var
  */
 public class Explorer {
+    private final int DEAD_END_VAL = 99999;
+    private final int TURN_COST_MULTIPILER = 3;
     private Maze staticMaze;
     private int maze [];
     private int mazeSide;
@@ -31,11 +33,10 @@ public class Explorer {
     private int startX, startY;
     private int endX, endY, endIndex;
     private final Scanner keyboard;
-    private final int DEAD_END_VAL = 99999;
-    private String [] path = new String [10];
+    private String path;
+    private int pathCost;
     
     public Explorer(int endX, int endY){
-        for (int i = 0; i < path.length; i++) path[i] = "";
         // Bu blok bilgisayarda çalışması içindir
         // Bitiş pozisyonuna göre array in ayarını çeker
         // Arduino da başta sabit bir array vereceğiz
@@ -61,7 +62,6 @@ public class Explorer {
     }
     
     public Explorer(Maze staticMaze, int mazeSide, int startX, int startY){
-        for (int i = 0; i < path.length; i++) path[i] = "";
         this.mazeSide = mazeSide;
         this.maze = new int [mazeSide * mazeSide]; // Maze Array i
         for(int i = 0; i < maze.length; i++) maze[i] = -1; // Maze in 
@@ -81,6 +81,14 @@ public class Explorer {
     // X ve Y nin değerine göre index verisi döndürür
     private int getIndex(int x, int y){
         return y * mazeSide + x;
+    }
+    
+    private int getX(int index){
+        return index % mazeSide;
+    }
+    
+    private int getY(int index){
+        return (index - (index % 10)) / 10;
     }
     
     // Arrayi genişletir eski array yeni array in ortasına yerleştirilir
@@ -142,6 +150,8 @@ public class Explorer {
             int val = staticMaze.getVal(index);
             if (val == 2){
                 endIndex = index;
+                endX = getX(endIndex);
+                endY = getY(endIndex);
                 return 0;
             }
             else{
@@ -295,23 +305,20 @@ public class Explorer {
         }
     }
     
-    private void findPath(String currPath, int tX, int tY, int prevIndex){
-        if (getIndex(tX, tY) == endIndex){
-            for(int i = 0; i < path.length; i++){
-                if(path[i] != null){
-                    path[i] = currPath;
-                    break;
-                }
-            }
+    private void findPath(String currPath, int currPathCost, int tX, int tY,
+            int prevIndexDirection){
+        int currVal = maze[getIndex(tX, tY)];
+        if (getIndex(tX, tY) == endIndex && (pathCost == 0 || currPathCost < pathCost)){
+            path = currPath;
+            pathCost = currPathCost;  
         }
-
-        else{
+        else if (pathCost== 0 || currPathCost < pathCost){
             boolean loopDedect = false;
             int [] surroundIndexes = new int [4];
             int [] surroundValues;
-            int currVal = maze[getIndex(tX, tY)];
             int newX = tX;
             int newY = tY;
+            int newPathCost = currPathCost;
             surroundIndexes[0] = getIndex(tX, tY + 1);
             surroundIndexes[1] = getIndex(tX + 1, tY);
             surroundIndexes[2] = getIndex(tX, tY - 1);
@@ -320,11 +327,17 @@ public class Explorer {
             surroundValues = getMazeVal(surroundIndexes);
             
             for(int i = 0; i < surroundIndexes.length; i++){
-                if(surroundIndexes[i] != prevIndex && surroundValues[i] >= 0){
+                if(i != prevIndexDirection && surroundValues[i] >= 0){
                     if((surroundValues[i] == 0) || (currVal + 1 <= surroundValues[i])){
                         maze[surroundIndexes[i]] = currVal + 1;
                         newX = tX;
                         newY = tY;
+                        if (prevIndexDirection % 2 == i % 2){
+                            newPathCost += 1;
+                        }
+                        else{
+                            newPathCost += TURN_COST_MULTIPILER;
+                        }
                         switch(i){
                             case 0: newY++; break;
                             case 1: newX++; break;
@@ -334,7 +347,7 @@ public class Explorer {
                         }
                         System.out.println("\n");
                         printMaze();
-                        findPath(currPath + returnDirection(i), newX, newY, getIndex(tX, tY));
+                        findPath(currPath + returnDirection(i), newPathCost ,newX, newY, (i + 2) % 4);
                     }
                     else if(currVal >= surroundValues[i]){
                         loopDedect = true;
@@ -352,10 +365,8 @@ public class Explorer {
     public void start(){
         explore();
         changeToZero();
-        findPath("", startX, startY, -1);
-        for(String val: path){
-            System.out.println(val);
-        }
+        findPath("", pathCost, startX, startY, -1);
+        System.out.println(path);
     }
     
     
