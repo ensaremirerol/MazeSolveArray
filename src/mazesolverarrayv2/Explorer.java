@@ -349,10 +349,6 @@ public class Explorer {
                         printMaze();
                         findPath(currPath + returnDirection(i), newPathCost ,newX, newY, (i + 2) % 4);
                     }
-                    else if(currVal >= surroundValues[i]){
-                        loopDedect = true;
-                        break;
-                    } 
                 }
 
             }
